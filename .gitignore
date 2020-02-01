@@ -1,3 +1,9 @@
+# Dev
+build
+.tmp
+.bkp
+
+
 gs
 logs
 *.log
