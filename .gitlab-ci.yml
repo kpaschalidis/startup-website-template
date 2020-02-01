@@ -1,13 +1,21 @@
-image: node:4.2.2
+image: node:latest
 
-cache:
-  paths:
-  - node_modules/
+    stages:
+      - build
+      - test
 
-stages:
-  - build
+    cache:
+      paths:
+        - node_modules/
 
-test_async:
-  stage: build
-  script:
-   - npm install
+    install_dependencies:
+      stage: build
+      script:
+        - npm install
+      artifacts:
+        paths:
+          - node_modules/
+
+    testing_testing:
+      stage: test
+      script: npm test
