@@ -1,14 +1,37 @@
-image: node:6.5.0 # can be upgraded, depending on your node version used
+services:
+  - docker:dind
 
-pages:
-  stage: deploy
+stages:
+  - package
+  - deploy
+
+variables:
+  GCP_PROJECT: startup-website-266912
+  GCP_SERVICE: startup-website-dev
+  GCP_REGISTRY: gcr.io/startup-website-2666912
+  PACKAGE_CONTAINER_BUILD_IMAGE: $GCP_REGISTRY/$GCP_SERVICE:build-$CI_COMMIT_REF_SLUG
+
+# Multiline Scripts
+.deploy-cloud-run: &deploy-cloud-run |
+  gcloud run deploy $CLOUD_RUN_PROJECT --image $PACKAGE_CONTAINER_BUILD_IMAGE \
+  --platform managed --allow-unauthenticated --region europe-west1
+
+# .version-package: &version-package |
+#   echo -e "version: \"3.4\"\nservices:\n  static-website-dev:\n    image: \
+#   $PACKAGE_CONTAINER_BUILD_IMAGE\n"   \
+#   > docker-compose.gcp.yml
+
+# Scripts to be executed before all tasks
+before_script:
+  - mkdir -p $HOME/.docker
+  # - echo "$GITLAB_SERVICE_ACCOUNT_KEY_JSON" >> "$HOME/.docker/config.json"
+  - echo "$CLOUD_RUN_SERVICE_ACCOUNT_KEY_JSON" >> "$HOME/google-cloud-run.json"
+
+package:
+  stage: package
+  image: docker/compose:latest
   script:
-  - npm install
-  - npm run build
-  - rm -rf public
-  - mv build public
-  artifacts:
-    paths:
-    - public # mandatory, other folder won't work
-  only:
-  - master # or dev, the branch you want to publish
+    - docker login -u _json_key --password-stdin https://gcr.io < $HOME/.docker/config.json
+    # - *version-package
+    - docker build -t $PACKAGE_CONTAINER_BUILD_IMAGE/
+    - docker push $PACKAGE_CONTAINER_BUILD_IMAGE
